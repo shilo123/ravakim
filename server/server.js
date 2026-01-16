@@ -18,15 +18,6 @@ const AWS = require("aws-sdk");
 const puppeteer = require("puppeteer");
 const PORT = process.env.PORT || 3006;
 
-// Validate required environment variables
-const requiredEnvVars = ['MONGO_URI', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'];
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
-if (missingEnvVars.length > 0) {
-  console.error(`Error: Missing required environment variables: ${missingEnvVars.join(', ')}`);
-  console.error('Please set these environment variables before starting the server.');
-  process.exit(1);
-}
-
 app.use("/UpFile", express.static("UpFile"));
 app.use(bodyParser.json());
 app.use(cors());
