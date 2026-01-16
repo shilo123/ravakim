@@ -24,33 +24,25 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, "client")));
 
 const s3 = new AWS.S3({
-  accessKeyId: "AKIASWXFMBWARBBNHUMG",
-  secretAccessKey: "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",
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   region: "us-east-1",
 });
-const URL = "https://server-ravakim-10c1effbda77.herokuapp.com";
-// const URL = "http://localhost:3006/";
+const URL = process.env.APP_URL || "https://server-ravakim-10c1effbda77.herokuapp.com";
 let collection = null;
 (async () => {
-  const url =
-    "mongodb+srv://hazshilo:1234@cluster0.0yzklos.mongodb.net/?tlsAllowInvalidCertificates=true";
-  // const url =
-  //   "mongodb+srv://hazshilo:1234@cluster1.ifbyw.mongodb.net/?tlsAllowInvalidCertificates=true";
+  const url = process.env.MONGO_URI;
   const connection = await mongo.connect(url);
   const db = connection.db("Project-ravakim");
   collection = db.collection("Users-Ravakim");
 })();
 let collectionP = null;
 (async () => {
-  const url =
-    "mongodb+srv://hazshilo:1234@cluster0.0yzklos.mongodb.net/?tlsAllowInvalidCertificates=true";
-  // const url =
-  //   "mongodb+srv://hazshilo:1234@cluster1.ifbyw.mongodb.net/?tlsAllowInvalidCertificates=true";
+  const url = process.env.MONGO_URI;
   const connection = await mongo.connect(url);
   const db = connection.db("Project-ravakim");
 
   collectionP = db.collection("potentzial");
-  // collection.deleteMany({});
 })();
 function random(min, max) {
   if (min > max) {
