@@ -112,10 +112,7 @@ function ageToBirthDate(age) {
   const connection = await mongo.connect(url);
   const db = connection.db("Project-ravakim");
   collection = db.collection("Users-Ravakim");
-
-  const connection2 = await mongo.connect(url);
-  const db2 = connection2.db("Project-ravakim");
-  collectionP = db2.collection("potentzial");
+  collectionP = db.collection("potentzial");
 
 app.post("/postFilee", upload.single("file"), async (req, res) => {
   const params = {
