@@ -4,8 +4,7 @@ process.env.AWS_SDK_JS_SUPPRESS_MAINTENANCE_MODE_MESSAGE = "1";
 const express = require("express");
 const app = express();
 const cors = require("cors");
-let mongo = require("mongodb").MongoClient;
-const ObjectId = require("mongodb").ObjectId;
+const { MongoClient, ObjectId } = require("mongodb");
 const bodyParser = require("body-parser");
 const fs = require("fs");
 const axios = require("axios");
@@ -30,6 +29,7 @@ const s3 = new AWS.S3({
 const URL = process.env.APP_URL || "https://server-ravakim-10c1effbda77.herokuapp.com";
 let collection = null;
 let collectionP = null;
+let mongoClient = null;
 
 function random(min, max) {
   if (min > max) {
@@ -106,12 +106,28 @@ function ageToBirthDate(age) {
   return birthDate;
 }
 
-(async () => {
-  const url = process.env.MONGO_URI;
-  const connection = await mongo.connect(url);
-  const db = connection.db("Project-ravakim");
-  collection = db.collection("Users-Ravakim");
-  collectionP = db.collection("potentzial");
+async function init() {
+  const uri = process.env.MONGO_URI;
+  if (!uri) {
+    console.error("MONGO_URI לא מוגדר ב-Config Vars של Heroku");
+  }
+  try {
+    if (uri) {
+      mongoClient = new MongoClient(uri);
+      await mongoClient.connect();
+      const db = mongoClient.db("Project-ravakim");
+      collection = db.collection("Users-Ravakim");
+      collectionP = db.collection("potentzial");
+      console.log("MongoDB: התחברות הצליחה");
+    }
+  } catch (err) {
+    console.error("MongoDB: התחברות נכשלה:", err?.message || err);
+  } finally {
+    app.listen(PORT, () => {
+      console.log(`http://localhost:${PORT}/`);
+    });
+  }
+}
 
 app.post("/postFilee", upload.single("file"), async (req, res) => {
   const params = {
@@ -408,11 +424,16 @@ app.put("/EditUser", async (req, res) => {
   }
 });
 
+app.get("/healthz", (req, res) => {
+  res.json({
+    ok: true,
+    dbConnected: !!collection,
+  });
+});
+
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "client", "index.html"));
 });
 
-app.listen(PORT, () => {
-  console.log(`http://localhost:${PORT}/`);
-});
-})();
+init();
+
