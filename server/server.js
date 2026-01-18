@@ -30,20 +30,8 @@ const s3 = new AWS.S3({
 });
 const URL = process.env.APP_URL || "https://server-ravakim-10c1effbda77.herokuapp.com";
 let collection = null;
-(async () => {
-  const url = process.env.MONGO_URI;
-  const connection = await mongo.connect(url);
-  const db = connection.db("Project-ravakim");
-  collection = db.collection("Users-Ravakim");
-})();
 let collectionP = null;
-(async () => {
-  const url = process.env.MONGO_URI;
-  const connection = await mongo.connect(url);
-  const db = connection.db("Project-ravakim");
 
-  collectionP = db.collection("potentzial");
-})();
 function random(min, max) {
   if (min > max) {
     throw new Error("אחי אך המינימלי גדול מהמקמילי אחיי");
@@ -118,6 +106,13 @@ function ageToBirthDate(age) {
 
   return birthDate;
 }
+
+(async () => {
+  const url = process.env.MONGO_URI;
+  const connection = await mongo.connect(url);
+  const db = connection.db("Project-ravakim");
+  collection = db.collection("Users-Ravakim");
+  collectionP = db.collection("potentzial");
 
 app.post("/postFilee", upload.single("file"), async (req, res) => {
   const params = {
@@ -622,3 +617,4 @@ app.get("*", (req, res) => {
 app.listen(PORT, () => {
   console.log(`http://localhost:${PORT}/`);
 });
+})();
