@@ -20,8 +20,7 @@
     "node-mailjet": "^6.0.4",
     "nodemon": "^3.0.1",
     "objectid": "^3.2.1",
-    "path": "^0.12.7",
-    "puppeteer": "^22.15.0"
+    "path": "^0.12.7"
   },
   "engines": {
     "node": "22.x"
