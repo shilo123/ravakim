@@ -114,7 +114,7 @@ $text-main: #ffffff;
 $text-muted: rgba(255, 255, 255, 0.75);
 
 .grid-wrapper {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 1.5rem auto 3rem;
   padding: 0 1rem;
 }
@@ -157,10 +157,22 @@ $text-muted: rgba(255, 255, 255, 0.75);
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 1rem;
-  max-width: 400px;
+  max-width: 100%;
   margin: 0 auto;
+
+  @media screen and (max-width: 1400px) {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  @media screen and (max-width: 1100px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  @media screen and (max-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .grid__item {
