@@ -1,6 +1,9 @@
 // השתקת אזהרת AWS SDK v2
 process.env.AWS_SDK_JS_SUPPRESS_MAINTENANCE_MODE_MESSAGE = "1";
 
+// טעינת משתני סביבה מקובץ .env
+require("dotenv").config();
+
 const express = require("express");
 const app = express();
 const cors = require("cors");
@@ -20,37 +23,55 @@ const PORT = process.env.PORT || 3006;
 
 app.use("/UpFile", express.static("UpFile"));
 app.use(bodyParser.json());
-app.use(cors());
+
+// הגדרת CORS עם origin ספציפי
+const corsOptions = {
+  origin: [
+    "https://server-ravakim-10c1effbda77.herokuapp.com",
+    "http://localhost:3006",
+    "http://localhost:8080",
+    "http://localhost:5173",
+    "http://127.0.0.1:8080",
+    "http://127.0.0.1:5173"
+  ],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+};
+
+app.use(cors(corsOptions));
 app.use(express.static(path.join(__dirname, "client")));
 
 const s3 = new AWS.S3({
-  accessKeyId: "AKIASWXFMBWARBBNHUMG",
-  secretAccessKey: "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",
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   region: "us-east-1",
 });
 const URL = "https://server-ravakim-10c1effbda77.herokuapp.com";
 // const URL = "http://localhost:3006/";
 let collection = null;
-(async () => {
-  const url =
-    "mongodb+srv://hazshilo:1234@cluster0.0yzklos.mongodb.net/?tlsAllowInvalidCertificates=true";
-  // const url =
-  //   "mongodb+srv://hazshilo:1234@cluster1.ifbyw.mongodb.net/?tlsAllowInvalidCertificates=true";
-  const connection = await mongo.connect(url);
-  const db = connection.db("Project-ravakim");
-  collection = db.collection("Users-Ravakim");
-})();
 let collectionP = null;
-(async () => {
-  const url =
-    "mongodb+srv://hazshilo:1234@cluster0.0yzklos.mongodb.net/?tlsAllowInvalidCertificates=true";
-  // const url =
-  //   "mongodb+srv://hazshilo:1234@cluster1.ifbyw.mongodb.net/?tlsAllowInvalidCertificates=true";
-  const connection = await mongo.connect(url);
-  const db = connection.db("Project-ravakim");
+let mongoConnection = null;
 
-  collectionP = db.collection("potentzial");
-  // collection.deleteMany({});
+// פונקציה להתחברות ל-MongoDB
+(async () => {
+  try {
+    const url = process.env.MONGO_URI;
+    if (!url) {
+      console.error("❌ MONGO_URI לא מוגדר בקובץ .env");
+      return;
+    }
+    console.log("🔄 מתחבר ל-MongoDB...");
+    mongoConnection = await mongo.connect(url);
+    const db = mongoConnection.db("Project-ravakim");
+    
+    collection = db.collection("Users-Ravakim");
+    collectionP = db.collection("potentzial");
+    
+    console.log("✅ התחברות ל-MongoDB הצליחה - כל הקולקשנים מוכנים");
+  } catch (error) {
+    console.error("❌ שגיאה בהתחברות ל-MongoDB:", error.message);
+  }
 })();
 function random(min, max) {
   if (min > max) {
@@ -230,7 +251,7 @@ app.get("/GetDetalis/:id", async (req, res) => {
 });
 app.get("/GetShiduhim", async (req, res) => {
   if (!collection) {
-    while (!collection) {}
+    return res.status(500).json({ error: "מסד הנתונים לא מוכן" });
   }
   let data = await collection
     .aggregate([

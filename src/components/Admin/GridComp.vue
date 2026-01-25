@@ -64,9 +64,9 @@
                     <span class="material-symbols-outlined">workspace_premium</span>
                     <span>{{ Item.RamaDatit }}</span>
                   </div>
-                  <div v-if="Item.Address" class="profile-card__info-item">
+                  <div class="profile-card__info-item profile-card__info-item--address">
                     <span class="material-symbols-outlined">location_on</span>
-                    <span>{{ Item.Address }}</span>
+                    <span>{{ Item.Address || "—" }}</span>
                   </div>
                 </div>
 
@@ -76,7 +76,7 @@
                   class="profile-card__button"
                   @click.stop="GetPratim(Item._id)"
                 >
-                  שלח הודעה
+                  מידע נוסף
                 </button>
               </div>
             </article>
@@ -191,6 +191,7 @@ $background-dark: #0a1020;
 
 .grid__item {
   display: flex;
+  margin-bottom: 1.5rem;
 }
 
 /* כרטיס */
@@ -408,6 +409,11 @@ $background-dark: #0a1020;
     font-size: 1.375rem;
     color: rgba(17, 82, 212, 0.8);
   }
+
+  /* כתובת מגורים - תמיד מוצגת */
+  &--address {
+    display: flex;
+  }
 }
 
 /* כפתור "שלח הודעה" */
@@ -451,6 +457,7 @@ $background-dark: #0a1020;
 @media screen and (max-width: 640px) {
   .grid {
     gap: 1.5rem;
+    margin-bottom: 3rem;
   }
 
   .profile-card__image-section {
