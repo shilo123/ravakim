@@ -7,8 +7,7 @@ require("dotenv").config();
 const express = require("express");
 const app = express();
 const cors = require("cors");
-let mongo = require("mongodb").MongoClient;
-const ObjectId = require("mongodb").ObjectId;
+const { MongoClient, ObjectId } = require("mongodb");
 const bodyParser = require("body-parser");
 const fs = require("fs");
 const axios = require("axios");
@@ -18,7 +17,6 @@ const multer = require("multer");
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 const AWS = require("aws-sdk");
-const puppeteer = require("puppeteer");
 const PORT = process.env.PORT || 3006;
 
 app.use("/UpFile", express.static("UpFile"));
@@ -47,8 +45,7 @@ const s3 = new AWS.S3({
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   region: "us-east-1",
 });
-const URL = "https://server-ravakim-10c1effbda77.herokuapp.com";
-// const URL = "http://localhost:3006/";
+const URL = process.env.APP_URL || "https://server-ravakim-10c1effbda77.herokuapp.com";
 let collection = null;
 let collectionP = null;
 let mongoConnection = null;
@@ -146,6 +143,29 @@ function ageToBirthDate(age) {
   const birthDate = new Date(birthYear, today.getMonth(), today.getDate());
 
   return birthDate;
+}
+
+async function init() {
+  const uri = process.env.MONGO_URI;
+  if (!uri) {
+    console.error("MONGO_URI לא מוגדר ב-Config Vars של Heroku");
+  }
+  try {
+    if (uri) {
+      mongoClient = new MongoClient(uri);
+      await mongoClient.connect();
+      const db = mongoClient.db("Project-ravakim");
+      collection = db.collection("Users-Ravakim");
+      collectionP = db.collection("potentzial");
+      console.log("MongoDB: התחברות הצליחה");
+    }
+  } catch (err) {
+    console.error("MongoDB: התחברות נכשלה:", err?.message || err);
+  } finally {
+    app.listen(PORT, () => {
+      console.log(`http://localhost:${PORT}/`);
+    });
+  }
 }
 
 app.post("/postFilee", upload.single("file"), async (req, res) => {
@@ -251,30 +271,37 @@ app.get("/GetDetalis/:id", async (req, res) => {
 });
 app.get("/GetShiduhim", async (req, res) => {
   if (!collection) {
-    return res.status(500).json({ error: "מסד הנתונים לא מוכן" });
+    return res.status(503).json({ 
+      error: "מסד הנתונים לא מוכן", 
+      message: "השרת עדיין מתחבר למסד הנתונים, נסה שוב בעוד כמה שניות" 
+    });
   }
-  let data = await collection
-    .aggregate([
-      {
-        $group: {
-          _id: null,
-          man: {
-            $push: {
-              $cond: [{ $eq: ["$Gender", "זכר"] }, "$$ROOT", "$$REMOVE"],
+  
+  try {
+    let data = await collection
+      .aggregate([
+        {
+          $group: {
+            _id: null,
+            man: {
+              $push: {
+                $cond: [{ $eq: ["$Gender", "זכר"] }, "$$ROOT", "$$REMOVE"],
+              },
             },
-          },
-          woman: {
-            $push: {
-              $cond: [{ $eq: ["$Gender", "נקבה"] }, "$$ROOT", "$$REMOVE"],
+            woman: {
+              $push: {
+                $cond: [{ $eq: ["$Gender", "נקבה"] }, "$$ROOT", "$$REMOVE"],
+              },
             },
           },
         },
-      },
-    ])
-    .toArray();
-  data = GetAge(data[0]);
-
-  res.json(data);
+      ])
+      .toArray();
+    data = GetAge(data[0]);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: "שגיאה בשליפת נתונים" });
+  }
 });
 app.get("/GetShoduh", async (req, res) => {
   let data = await collectionP
@@ -436,210 +463,17 @@ app.put("/EditUser", async (req, res) => {
   }
 });
 
-// יצירת PDF עם שמות הרווקים באמצעות puppeteer
-app.get("/GeneratePDF", async (req, res) => {
-  let browser = null;
-  try {
-    if (!collection) {
-      return res.status(500).json({ error: "מסד הנתונים לא מוכן" });
-    }
-
-    let data = await collection.find({}).toArray();
-
-    const names = data
-      .map((user) => user.Name)
-      .filter((name) => name && name.trim());
-
-    if (names.length === 0) {
-      return res.status(400).json({ error: "אין שמות להצגה" });
-    }
-
-    // יצירת HTML עם עיצוב נחמד
-    const htmlContent = `
-<!DOCTYPE html>
-<html dir="rtl" lang="he">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>לזיווג הגון</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&display=swap');
-    
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: 'Assistant', 'Arial', sans-serif;
-      direction: rtl;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 40px 20px;
-      min-height: 100vh;
-    }
-    
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      padding: 50px;
-    }
-    
-    .header {
-      text-align: center;
-      margin-bottom: 50px;
-      padding-bottom: 30px;
-      border-bottom: 3px solid #667eea;
-    }
-    
-    .header h1 {
-      font-size: 48px;
-      font-weight: 700;
-      color: #667eea;
-      margin-bottom: 10px;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    
-    .header p {
-      font-size: 18px;
-      color: #666;
-      margin-top: 10px;
-    }
-    
-    .names-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 20px;
-      margin-top: 30px;
-    }
-    
-    .name-item {
-      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-      padding: 20px;
-      border-radius: 12px;
-      text-align: center;
-      font-size: 20px;
-      font-weight: 600;
-      color: #333;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      transition: transform 0.2s;
-      border: 2px solid transparent;
-    }
-    
-    .name-item:hover {
-      transform: translateY(-2px);
-      border-color: #667eea;
-    }
-    
-    .name-item:nth-child(even) {
-      background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
-    }
-    
-    .footer {
-      text-align: center;
-      margin-top: 50px;
-      padding-top: 30px;
-      border-top: 2px solid #eee;
-      color: #999;
-      font-size: 14px;
-    }
-    
-    @media print {
-      body {
-        background: white;
-        padding: 0;
-      }
-      .container {
-        box-shadow: none;
-        padding: 30px;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>📿 לזיווג הגון</h1>
-      <p>רשימת שמות לתפילה</p>
-    </div>
-    <div class="names-grid">
-      ${names
-        .map(
-          (name) => `
-        <div class="name-item">${name}</div>
-      `
-        )
-        .join("")}
-    </div>
-    <div class="footer">
-      <p>יהי רצון שכל אחד ואחת ימצאו את זיווגם הגון במהרה</p>
-    </div>
-  </div>
-</body>
-</html>
-    `;
-
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
-
-    const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
-
-    // הגדרת CORS headers
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-    // הגדרת headers
-    res.setHeader("Content-Type", "application/pdf");
-    const filename = "לזיווג הגון.pdf";
-    const encodedFilename = encodeURIComponent(filename);
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename*=UTF-8''${encodedFilename}`
-    );
-
-    // יצירת PDF
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: {
-        top: "20mm",
-        right: "20mm",
-        bottom: "20mm",
-        left: "20mm",
-      },
-    });
-
-    await browser.close();
-    browser = null;
-
-    res.send(pdfBuffer);
-  } catch (error) {
-    if (browser) {
-      await browser.close();
-    }
-    if (!res.headersSent) {
-      res.status(500).json({
-        error: "שגיאה ביצירת PDF",
-        details: error.message,
-        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
-      });
-    } else {
-      res.end();
-    }
-  }
+app.get("/healthz", (req, res) => {
+  const dbConnected = collection !== null && collectionP !== null;
+  res.json({ 
+    ok: true, 
+    dbConnected,
+    message: dbConnected ? "מסד נתונים מחובר" : "מסד נתונים לא מחובר"
+  });
 });
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "client", "index.html"));
 });
 
-app.listen(PORT, () => {
-  console.log(`http://localhost:${PORT}/`);
-});
+init();

@@ -173,6 +173,7 @@ $background-dark: #0a1020;
 
 .grid {
   display: grid;
+<<<<<<< HEAD
   grid-template-columns: repeat(1, 1fr);
   gap: 2rem;
   
@@ -187,6 +188,24 @@ $background-dark: #0a1020;
   @media (min-width: 1280px) {
     grid-template-columns: repeat(4, 1fr);
   }
+=======
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1rem;
+  max-width: 100%;
+  margin: 0 auto;
+
+  @media screen and (max-width: 1400px) {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  @media screen and (max-width: 1100px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  @media screen and (max-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+>>>>>>> 5882fc1290a8e14e22335b3baf3edab5be77310a
 }
 
 .grid__item {

@@ -2,11 +2,16 @@
   "name": "ravakim",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x",
+    "npm": "10.x"
+  },
+  "heroku-run-build-script": true,
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "start": "npm start --prefix server",
+    "start": "node server/server.js",
     "heroku-postbuild": "npm install --prefix server && npm run build && cp -r dist/. server/client"
   },
   "dependencies": {
