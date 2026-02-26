@@ -650,12 +650,10 @@ ${imageUrl ? "🖼️ תמונה:\n" + imageUrl + "\n\n" : ""}🧑‍💼 *כר�
   }
 
   @media (max-width: 640px) {
-    top: auto;
-    bottom: 1.25rem;
-    left: 1.25rem;
-    right: 1.25rem;
-    width: calc(100% - 2.5rem);
+    position: static;
+    width: 100%;
     text-align: center;
+    margin-bottom: 0.75rem;
   }
 }
 
@@ -669,7 +667,7 @@ ${imageUrl ? "🖼️ תמונה:\n" + imageUrl + "\n\n" : ""}🧑‍💼 *כר�
     flex-direction: column;
     text-align: center;
     gap: 1.5rem;
-    margin-top: 1.5rem;
+    margin-top: 0.5rem;
   }
 }
 
