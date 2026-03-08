@@ -70,13 +70,26 @@
               </div>
             </div>
 
-            <div class="field" style="margin-top: 8px">
-              <label>כתובת מגורים</label>
-              <input
-                v-model="Form.Address"
-                type="text"
-                placeholder="הקלד כתובת מגורים"
-              />
+            <div class="grid-2" style="margin-top: 8px">
+              <div class="field">
+                <label>כתובת מגורים</label>
+                <input
+                  v-model="Form.Address"
+                  type="text"
+                  placeholder="הקלד כתובת מגורים"
+                />
+              </div>
+
+              <div class="field">
+                <label>גובה (בס"מ)</label>
+                <input
+                  v-model="Form.Height"
+                  type="number"
+                  placeholder="לדוגמה: 175"
+                  min="100"
+                  max="250"
+                />
+              </div>
             </div>
           </section>
 
@@ -294,6 +307,7 @@ export default {
           Form.IsuckOrMosadLimudim &&
           Form.BirthDate &&
           Form.Address &&
+          Form.Height &&
           Form.RamaDatit &&
           Form.Status &&
           Form.Ofi &&
@@ -311,6 +325,11 @@ export default {
             const normalizedBirthDate = normalizeBirthDate(Form.BirthDate);
             if (normalizedBirthDate) {
               payload.BirthDate = normalizedBirthDate;
+            }
+
+            // המרת גובה למספר
+            if (payload.Height) {
+              payload.Height = Number(payload.Height);
             }
 
             // לא שולחים Age בכלל – רק BirthDate
@@ -337,6 +356,7 @@ export default {
             showError("לא מלאת עיסוק\\מוסד לימודים");
           else if (!Form.BirthDate) showError("לא מלאת תאריך לידה");
           else if (!Form.Address) showError("לא מלאת כתובת מגורים");
+          else if (!Form.Height) showError("לא מלאת גובה");
           else if (!Form.RamaDatit) showError("לא מלאת רמה דתית");
           else if (!Form.Status) showError("לא מלאת סטטוס");
           else if (!Form.Ofi) showError("לא מלאת אופי");

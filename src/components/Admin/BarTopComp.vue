@@ -332,11 +332,16 @@ $text-muted: #94a3b8;
 }
 
 @media (max-width: 768px) {
-  .bar-top__field {
-    min-width: calc(50% - 0.5rem);
-    flex: 1 1 calc(50% - 0.5rem);
+  .bar-top__row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
   }
-  
+
+  .bar-top__row--top {
+    gap: 0.75rem;
+  }
+
   .bar-top__search-wrapper {
     min-width: 100%;
     order: -2;
@@ -345,24 +350,88 @@ $text-muted: #94a3b8;
   .bar-top__right-side {
     min-width: 100%;
     order: -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.75rem;
   }
 
   .bar-top__gender {
     flex: 1;
+    min-width: 0;
   }
-  
+
   .bar-top__gender-tabs {
     width: 100%;
+  }
+
+  .bar-top__dropdown {
+    flex-shrink: 0;
+  }
+
+  .bar-top__field {
+    min-width: 100%;
+    flex: 1 1 100%;
   }
 
   .bar-top__field--ages {
     min-width: 100%;
   }
+
+  .bar-top__ages {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .bar-top__age-group {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 @media (max-width: 480px) {
+  .bar-top__inner {
+    padding: 0.75rem;
+  }
+
+  .bar-top__row {
+    gap: 0.6rem;
+  }
+
   .bar-top__field {
     min-width: 100%;
+  }
+
+  .bar-top__right-side {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .bar-top__gender {
+    width: 100%;
+  }
+
+  .bar-top__gender-tabs {
+    width: 100%;
+  }
+
+  .bar-top__tab span {
+    padding: 0 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .bar-top__input, .bar-top__select {
+    height: 2.5rem;
+    font-size: 0.875rem;
+  }
+
+  .bar-top__gender-tabs {
+    height: 2.5rem;
+  }
+
+  .bar-top__label {
+    font-size: 0.8rem;
   }
 }
 </style>

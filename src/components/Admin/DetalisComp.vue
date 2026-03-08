@@ -33,7 +33,7 @@
           </div>
           <div class="top-text">
             <h2>{{ user.Name }}</h2>
-            <p class="sub">{{ user.age }} · {{ user.Gender }}</p>
+            <p class="sub">{{ user.age }} · {{ user.Gender }}<span v-if="user.Height"> · {{ user.Height }} ס"מ</span></p>
             <p class="job">{{ user.IsuckOrMosadLimudim }}</p>
           </div>
         </div>
@@ -112,6 +112,36 @@
               <div class="edit-row" v-else>
                 <input v-model="editDraft" class="edit-input" type="text" />
                 <button class="edit-save" @click="confirmEdit('Status')">
+                  עדכון
+                </button>
+                <button class="edit-cancel" @click="cancelEdit">בטל</button>
+              </div>
+            </div>
+
+            <!-- גובה -->
+            <div class="block">
+              <h3>גובה (ס"מ)</h3>
+
+              <!-- מצב תצוגה -->
+              <p class="row" v-if="editField !== 'Height'">
+                <span>{{ user.Height || "—" }}</span>
+                <i
+                  class="fa-solid fa-pen edit-icon"
+                  @click="startEdit('Height')"
+                ></i>
+              </p>
+
+              <!-- מצב עריכה -->
+              <div class="edit-row" v-else>
+                <input
+                  v-model="editDraft"
+                  class="edit-input"
+                  type="number"
+                  min="100"
+                  max="250"
+                  placeholder="גובה בס״מ"
+                />
+                <button class="edit-save" @click="confirmEdit('Height')">
                   עדכון
                 </button>
                 <button class="edit-cancel" @click="cancelEdit">בטל</button>
@@ -426,6 +456,7 @@ ${imageUrl ? "🖼️ תמונה:\n" + imageUrl + "\n\n" : ""}🧑‍💼 *כר�
 📞 *טלפון:* ${user.value.phone || "—"}
 💼 *עיסוק:* ${user.value.IsuckOrMosadLimudim || "—"}
 📍 *כתובת מגורים:* ${user.value.Address || "—"}
+📏 *גובה:* ${user.value.Height ? user.value.Height + ' ס"מ' : "—"}
 🕍 *רמה דתית:* ${user.value.RamaDatit || "—"}
 🧠 *אופי:* ${user.value.Ofi || "—"}
 🎯 *תחביבים:* ${user.value.Hobits || "—"}
