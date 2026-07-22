@@ -6,19 +6,20 @@
     "node": "22.x",
     "npm": "10.x"
   },
-  "heroku-run-build-script": true,
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "start": "node server/server.js",
-    "heroku-postbuild": "npm install --prefix server && npm run build && cp -r dist/. server/client"
+    "dev": "vercel dev"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.1",
+    "@vercel/blob": "^1.1.1",
     "@vueuse/integrations": "^10.9.0",
     "axios": "^1.6.7",
     "core-js": "^3.8.3",
     "element-plus": "^2.6.1",
+    "express": "^4.18.2",
     "vue": "^3.2.13",
     "vue-draggable-next": "^2.2.1",
     "vue-router": "^4.0.3",

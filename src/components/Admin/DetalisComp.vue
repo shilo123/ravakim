@@ -312,6 +312,7 @@
 <script>
 import { ref, watch, computed } from "vue";
 import axios from "axios";
+import { upload } from "@vercel/blob/client";
 import { URL } from "@/URL/url";
 
 export default {
@@ -490,21 +491,21 @@ ${imageUrl ? "🖼️ תמונה:\n" + imageUrl + "\n\n" : ""}🧑‍💼 *כר�
 
       try {
         loading.value = true;
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const { data } = await axios.post("/postFilee", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        const safeName = file.name.replace(/[^\w.-]+/g, "_");
+        const { url: blobUrl } = await upload(
+          `images/${Date.now()}-${safeName}`,
+          file,
+          { access: "public", handleUploadUrl: "/api/upload" }
+        );
 
         // עדכון התמונה במשתמש
         await axios.put(`${URL}EditUser`, {
           id: user.value._id,
           field: "picURL",
-          value: data,
+          value: blobUrl,
         });
 
-        user.value.picURL = data;
+        user.value.picURL = blobUrl;
         imageError.value = false;
         window.$toast && window.$toast("✅ התמונה עודכנה בהצלחה", "success");
       } catch (e) {

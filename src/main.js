@@ -27,3 +27,12 @@ app.component("input-form", InputForm);
 app.component("input-Serch", InputSerch);
 
 app.use(store).use(router).use(ElementPlus).mount("#app");
+
+// רישום Service Worker לתמיכת PWA (רק בפרודקשן)
+if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch((err) => {
+      console.warn("Service worker registration failed:", err);
+    });
+  });
+}
