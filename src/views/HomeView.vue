@@ -35,8 +35,26 @@
 
       <!-- כרטיס הטופס -->
       <div class="card">
+        <!-- אינדיקטור שלבים (מובייל בלבד) -->
+        <div v-if="isMobile" class="wizard-head">
+          <span class="wizard-head__count"
+            >שלב {{ step + 1 }} מתוך {{ totalSteps }}</span
+          >
+          <div class="wizard-head__dots">
+            <span
+              v-for="(s, i) in STEPS"
+              :key="i"
+              class="wizard-head__dot"
+              :class="{
+                'is-active': i === step,
+                'is-done': i < step,
+              }"
+            ></span>
+          </div>
+        </div>
+
         <!-- 1. פרטים אישיים -->
-        <section class="section">
+        <section v-if="showSection(0)" class="section" :class="sectionAnimClass">
           <div class="section__head">
             <span class="section__num">א</span>
             <div>
@@ -116,10 +134,10 @@
           </div>
         </section>
 
-        <hr class="divider" />
+        <hr v-if="!isMobile" class="divider" />
 
         <!-- 2. רקע ואופי -->
-        <section class="section">
+        <section v-if="showSection(1)" class="section" :class="sectionAnimClass">
           <div class="section__head">
             <span class="section__num">ב</span>
             <div>
@@ -160,10 +178,10 @@
           </div>
         </section>
 
-        <hr class="divider" />
+        <hr v-if="!isMobile" class="divider" />
 
         <!-- 3. תחביבים וציפיות -->
-        <section class="section">
+        <section v-if="showSection(2)" class="section" :class="sectionAnimClass">
           <div class="section__head">
             <span class="section__num">ג</span>
             <div>
@@ -194,10 +212,10 @@
           </div>
         </section>
 
-        <hr class="divider" />
+        <hr v-if="!isMobile" class="divider" />
 
         <!-- 4. המשפחה -->
-        <section class="section">
+        <section v-if="showSection(3)" class="section" :class="sectionAnimClass">
           <div class="section__head">
             <span class="section__num">ד</span>
             <div>
@@ -217,10 +235,10 @@
           </div>
         </section>
 
-        <hr class="divider" />
+        <hr v-if="!isMobile" class="divider" />
 
         <!-- 5. תמונה וסרטון -->
-        <section class="section">
+        <section v-if="showSection(4)" class="section" :class="sectionAnimClass">
           <div class="section__head">
             <span class="section__num">ה</span>
             <div>
@@ -283,8 +301,40 @@
           </div>
         </section>
 
-        <!-- שליחה -->
-        <button class="submit" @click="Submit" :disabled="LoadingB">
+        <!-- ניווט Wizard (מובייל בלבד) -->
+        <div v-if="isMobile" class="wizard-nav">
+          <button
+            v-if="step > 0"
+            class="wizard-nav__back"
+            @click="prevStep"
+          >
+            חזרה
+          </button>
+          <button
+            v-if="step < totalSteps - 1"
+            class="wizard-nav__next"
+            @click="nextStep"
+          >
+            הבא ←
+          </button>
+          <button
+            v-else
+            class="submit wizard-nav__submit"
+            @click="Submit"
+            :disabled="LoadingB"
+          >
+            <span v-if="!LoadingB">שליחת הפרטים</span>
+            <span v-else>שולח...</span>
+          </button>
+        </div>
+
+        <!-- שליחה (דסקטופ) -->
+        <button
+          v-if="!isMobile"
+          class="submit"
+          @click="Submit"
+          :disabled="LoadingB"
+        >
           <span v-if="!LoadingB">שליחת הפרטים</span>
           <span v-else>שולח...</span>
         </button>
@@ -311,7 +361,7 @@
 </template>
 
 <script>
-import { computed, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { URL } from "@/URL/url";
 import { upload } from "@vercel/blob/client";
 import axios from "axios";
@@ -339,6 +389,98 @@ export default {
       "Gender",
       "picURL",
     ];
+
+    const FIELD_ERRORS = {
+      Name: "לא מלאת שם",
+      phone: "לא מלאת מספר טלפון",
+      IsuckOrMosadLimudim: "לא מלאת עיסוק\\מוסד לימודים",
+      BirthDate: "לא מלאת תאריך לידה",
+      Address: "לא מלאת כתובת מגורים",
+      RamaDatit: "לא מלאת רמה דתית",
+      Status: "לא מלאת סטטוס",
+      Ofi: "לא מלאת אופי",
+      Hobits: "לא מלאת תחביבים",
+      MaMehapes: "לא אמרת מה אתה מחפש",
+      KavimClalim: "לא תיארת את משפחתך",
+      Gender: "לא תיארת מגדר",
+      picURL: "חובה להוסיף תמונה",
+    };
+
+    // Wizard במובייל: שלב לכל סקשן
+    const STEPS = [
+      {
+        fields: [
+          "Name",
+          "phone",
+          "BirthDate",
+          "Address",
+          "IsuckOrMosadLimudim",
+          "Gender",
+        ],
+      },
+      { fields: ["RamaDatit", "Status", "Ofi"] },
+      { fields: ["Hobits", "MaMehapes"] },
+      { fields: ["KavimClalim"] },
+      { fields: ["picURL"] },
+    ];
+    const totalSteps = STEPS.length;
+    const step = ref(0);
+    const isMobile = ref(false);
+    const navDirection = ref("next");
+
+    let mq = null;
+    const mqHandler = (e) => {
+      isMobile.value = e.matches;
+    };
+    onMounted(() => {
+      mq = window.matchMedia("(max-width: 640px)");
+      isMobile.value = mq.matches;
+      mq.addEventListener("change", mqHandler);
+    });
+    onBeforeUnmount(() => {
+      if (mq) mq.removeEventListener("change", mqHandler);
+    });
+
+    const showSection = (i) => !isMobile.value || step.value === i;
+
+    const firstMissing = (fields) =>
+      fields.find((f) => !Form[f] || String(Form[f]).trim() === "");
+
+    const scrollTop = () =>
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
+    const nextStep = () => {
+      const missing = firstMissing(STEPS[step.value].fields);
+      if (missing) {
+        showError(FIELD_ERRORS[missing]);
+        return;
+      }
+      if (step.value === 0 && Form.phone.length !== 10) {
+        showError("מספר טלפון חייב להכיל עשרה תווים");
+        return;
+      }
+      if (step.value < totalSteps - 1) {
+        navDirection.value = "next";
+        step.value++;
+        scrollTop();
+      }
+    };
+
+    const prevStep = () => {
+      if (step.value > 0) {
+        navDirection.value = "back";
+        step.value--;
+        scrollTop();
+      }
+    };
+
+    const sectionAnimClass = computed(() =>
+      isMobile.value
+        ? navDirection.value === "back"
+          ? "section--anim-back"
+          : "section--anim-next"
+        : ""
+    );
 
     const requiredCount = REQUIRED_FIELDS.length;
     const filledCount = computed(
@@ -399,21 +541,8 @@ export default {
             LoadingB.value = false;
           }
         } else {
-          if (!Form.Name) showError("לא מלאת שם");
-          else if (!Form.phone) showError("לא מלאת מספר טלפון");
-          else if (!Form.IsuckOrMosadLimudim)
-            showError("לא מלאת עיסוק\\מוסד לימודים");
-          else if (!Form.BirthDate) showError("לא מלאת תאריך לידה");
-          else if (!Form.Address) showError("לא מלאת כתובת מגורים");
-          else if (!Form.RamaDatit) showError("לא מלאת רמה דתית");
-          else if (!Form.Status) showError("לא מלאת סטטוס");
-          else if (!Form.Ofi) showError("לא מלאת אופי");
-          else if (!Form.Hobits) showError("לא מלאת תחביבים");
-          else if (!Form.MaMehapes) showError("לא אמרת מה אתה מחפש");
-          else if (!Form.KavimClalim) showError("לא תיארת את משפחתך");
-          else if (!Form.Gender) showError("לא תיארת מגדר");
-          else if (!Form.picURL) showError("חובה להוסיף תמונה");
-
+          const missing = firstMissing(REQUIRED_FIELDS);
+          if (missing) showError(FIELD_ERRORS[missing]);
           LoadingB.value = false;
         }
       } catch (error) {
@@ -466,6 +595,14 @@ export default {
       requiredCount,
       filledCount,
       progressPercent,
+      STEPS,
+      totalSteps,
+      step,
+      isMobile,
+      sectionAnimClass,
+      showSection,
+      nextStep,
+      prevStep,
       Submit,
       handleFileChange,
       handleVideoChange,
@@ -626,11 +763,132 @@ $line: #e8ddc8;
     0 2px 6px rgba(51, 38, 28, 0.05);
 }
 
+// ---- Wizard (מובייל) ----
+.wizard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid $line;
+}
+
+.wizard-head__count {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: $wine;
+}
+
+.wizard-head__dots {
+  display: flex;
+  gap: 7px;
+}
+
+.wizard-head__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: $line;
+  transition: all 0.25s ease;
+
+  &.is-done {
+    background: $gold;
+  }
+
+  &.is-active {
+    background: $wine;
+    transform: scale(1.35);
+    box-shadow: 0 0 0 3px rgba(140, 47, 57, 0.15);
+  }
+}
+
+.wizard-nav {
+  display: flex;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.wizard-nav__back {
+  flex: 0 0 auto;
+  padding: 13px 22px;
+  border-radius: 999px;
+  border: 1.5px solid $line;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: $muted;
+  cursor: pointer;
+  transition: all 0.18s ease;
+
+  &:hover {
+    border-color: $gold-soft;
+    color: $ink;
+  }
+}
+
+.wizard-nav__next {
+  flex: 1;
+  padding: 13px 0;
+  border: none;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff8f0;
+  cursor: pointer;
+  background: linear-gradient(135deg, $wine, $wine-deep);
+  box-shadow: 0 14px 28px -10px rgba(140, 47, 57, 0.6);
+  transition: transform 0.15s ease, filter 0.15s ease;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.wizard-nav__submit {
+  flex: 1;
+  margin-top: 0;
+}
+
 // ---- סקשנים ----
 .section {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  animation: rise 0.3s ease both;
+
+  // מעבר בין שלבים ב-Wizard: החלקה עדינה לפי כיוון
+  &--anim-next {
+    animation: stepNext 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  &--anim-back {
+    animation: stepBack 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes stepNext {
+  from {
+    opacity: 0;
+    transform: translateX(-26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes stepBack {
+  from {
+    opacity: 0;
+    transform: translateX(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .section__head {
@@ -962,6 +1220,23 @@ $line: #e8ddc8;
   font-size: 2rem;
   color: $wine;
   margin-bottom: 8px;
+  animation: heartbeat 1.6s ease-in-out infinite;
+}
+
+@keyframes heartbeat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  12% {
+    transform: scale(1.18);
+  }
+  24% {
+    transform: scale(1);
+  }
+  36% {
+    transform: scale(1.12);
+  }
 }
 
 .thanks__title {

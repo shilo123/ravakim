@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e6c65c"/>
+      <stop offset="0.5" stop-color="#c9a227"/>
+      <stop offset="1" stop-color="#9a7a14"/>
+    </linearGradient>
+    <linearGradient id="ice" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#b7e0f2"/>
+    </linearGradient>
+  </defs>
+  <!-- הטבעת -->
+  <circle cx="32" cy="42" r="16" fill="none" stroke="url(#gold)" stroke-width="6"/>
+  <!-- חיבור היהלום לטבעת -->
+  <rect x="26" y="22" width="12" height="6" rx="1" fill="url(#gold)"/>
+  <!-- היהלום: כתר -->
+  <polygon points="21,10 43,10 47,17 17,17" fill="url(#ice)" stroke="#7fb8d4" stroke-width="1.2" stroke-linejoin="round"/>
+  <!-- היהלום: פביליון -->
+  <polygon points="17,17 47,17 32,32" fill="#dff3fb" stroke="#7fb8d4" stroke-width="1.2" stroke-linejoin="round"/>
+  <!-- פאסטים -->
+  <path d="M27 10 L25 17 L32 32 M37 10 L39 17 M17 17 L32 32 M47 17 L32 32 M25 17 L39 17" fill="none" stroke="#9fd0e6" stroke-width="0.9"/>
+  <!-- נצנוץ -->
+  <path d="M50 6 l1.4 3.2 3.2 1.4 -3.2 1.4 -1.4 3.2 -1.4 -3.2 -3.2 -1.4 3.2 -1.4 z" fill="#ffffff" opacity="0.95"/>
+</svg>
