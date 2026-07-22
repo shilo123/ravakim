@@ -250,7 +250,14 @@
           <div class="media-row">
             <!-- תמונה -->
             <div class="media-box">
-              <div v-if="Form.picURL" class="avatar">
+              <!-- מצב העלאה: טבעת מסתובבת + אחוזים -->
+              <div v-if="uploadingPic" class="upload-circle upload-circle--busy">
+                <span class="upload-spinner"></span>
+                <span class="upload-circle__percent">{{ picProgress }}%</span>
+                <span class="upload-circle__text">מעלה את התמונה...</span>
+              </div>
+
+              <div v-else-if="Form.picURL" class="avatar">
                 <img :src="Form.picURL" class="avatar__img" alt="תמונה" />
                 <label class="avatar__change">
                   <input
@@ -262,6 +269,7 @@
                   החלפת תמונה
                 </label>
               </div>
+
               <label v-else class="upload-circle">
                 <input
                   type="file"
@@ -272,27 +280,32 @@
                 <span class="upload-circle__icon">+</span>
                 <span class="upload-circle__text">העלאת תמונה</span>
               </label>
-              <p v-if="uploadingPic" class="media-box__status">
-                מעלה תמונה...
-              </p>
             </div>
 
             <!-- סרטון -->
             <div class="media-box">
-              <label class="video-btn">
+              <label
+                class="video-btn"
+                :class="{ 'video-btn--busy': uploadingVideo }"
+              >
                 <input
                   type="file"
                   accept="video/*"
                   @change="handleVideoChange"
+                  :disabled="uploadingVideo"
                   hidden
                 />
-                <span>🎬 העלאת סרטון קצר</span>
+                <span v-if="!uploadingVideo">🎬 העלאת סרטון קצר</span>
+                <span v-else>מעלה סרטון... {{ videoProgress }}%</span>
               </label>
-              <p v-if="uploadingVideo" class="media-box__status">
-                מעלה סרטון...
-              </p>
+              <div v-if="uploadingVideo" class="upload-bar">
+                <div
+                  class="upload-bar__fill"
+                  :style="{ width: videoProgress + '%' }"
+                ></div>
+              </div>
               <video
-                v-if="Form.videoURL"
+                v-if="Form.videoURL && !uploadingVideo"
                 :src="Form.videoURL"
                 controls
                 class="video-preview"
@@ -321,7 +334,7 @@
             v-else
             class="submit wizard-nav__submit"
             @click="Submit"
-            :disabled="LoadingB"
+            :disabled="LoadingB || uploadingPic || uploadingVideo"
           >
             <span v-if="!LoadingB">שליחת הפרטים</span>
             <span v-else>שולח...</span>
@@ -333,7 +346,7 @@
           v-if="!isMobile"
           class="submit"
           @click="Submit"
-          :disabled="LoadingB"
+          :disabled="LoadingB || uploadingPic || uploadingVideo"
         >
           <span v-if="!LoadingB">שליחת הפרטים</span>
           <span v-else>שולח...</span>
@@ -373,6 +386,11 @@ export default {
     const LoadingB = ref(false);
     const uploadingPic = ref(false);
     const uploadingVideo = ref(false);
+    const picProgress = ref(0);
+    const videoProgress = ref(0);
+
+    const MAX_IMAGE_MB = 10;
+    const MAX_VIDEO_MB = 200;
 
     const REQUIRED_FIELDS = [
       "Name",
@@ -455,8 +473,7 @@ export default {
         showError(FIELD_ERRORS[missing]);
         return;
       }
-      if (step.value === 0 && Form.phone.length !== 10) {
-        showError("מספר טלפון חייב להכיל עשרה תווים");
+      if (step.value === 0 && (!validatePhone() || !validateBirthDate())) {
         return;
       }
       if (step.value < totalSteps - 1) {
@@ -507,6 +524,29 @@ export default {
       return d.toISOString();
     };
 
+    // ולידציות מעבר לשדות-חובה: טלפון וגיל הגיוני
+    const validatePhone = () => {
+      if (!/^\d{10}$/.test(String(Form.phone || "").trim())) {
+        showError("מספר טלפון חייב להכיל בדיוק 10 ספרות");
+        return false;
+      }
+      return true;
+    };
+
+    const validateBirthDate = () => {
+      const d = new Date(Form.BirthDate);
+      if (isNaN(d.getTime())) {
+        showError("תאריך לידה לא תקין");
+        return false;
+      }
+      const age = (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+      if (age < 16 || age > 120) {
+        showError("תאריך הלידה לא הגיוני, בדוק/י שוב");
+        return false;
+      }
+      return true;
+    };
+
     const Submit = async () => {
       try {
         LoadingB.value = true;
@@ -516,29 +556,28 @@ export default {
         );
 
         if (bool) {
-          if (Form.phone.length === 10) {
-            const payload = { ...Form };
-
-            const normalizedBirthDate = normalizeBirthDate(Form.BirthDate);
-            if (normalizedBirthDate) {
-              payload.BirthDate = normalizedBirthDate;
-            }
-            delete payload.Age;
-
-            const { data } = await axios.post(URL + "ADDForm", payload);
+          if (!validatePhone() || !validateBirthDate()) {
             LoadingB.value = false;
+            return;
+          }
+          const payload = { ...Form };
 
-            if (data) {
-              Object.keys(Form).forEach((key) => {
-                Form[key] = "";
-              });
-              Zehu.value = true;
-            } else {
-              showError("משהו השתבש בשליחה, נסה/י שוב");
-            }
+          const normalizedBirthDate = normalizeBirthDate(Form.BirthDate);
+          if (normalizedBirthDate) {
+            payload.BirthDate = normalizedBirthDate;
+          }
+          delete payload.Age;
+
+          const { data } = await axios.post(URL + "ADDForm", payload);
+          LoadingB.value = false;
+
+          if (data) {
+            Object.keys(Form).forEach((key) => {
+              Form[key] = "";
+            });
+            Zehu.value = true;
           } else {
-            showError("מספר טלפון חייב להכיל עשרה תווים");
-            LoadingB.value = false;
+            showError("משהו השתבש בשליחה, נסה/י שוב");
           }
         } else {
           const missing = firstMissing(REQUIRED_FIELDS);
@@ -551,23 +590,37 @@ export default {
       }
     };
 
-    const uploadToBlob = async (file, folder) => {
+    const uploadToBlob = async (file, folder, progressRef) => {
       const safeName = file.name.replace(/[^\w.-]+/g, "_");
       const { url } = await upload(`${folder}/${Date.now()}-${safeName}`, file, {
         access: "public",
         handleUploadUrl: "/api/upload",
+        onUploadProgress: ({ percentage }) => {
+          progressRef.value = Math.round(percentage);
+        },
       });
       return url;
     };
 
     const handleFileChange = async (event) => {
       const file = event.target.files && event.target.files[0];
+      event.target.value = "";
       if (!file) return;
+      if (!file.type.startsWith("image/")) {
+        showError("אפשר להעלות רק קובץ תמונה");
+        return;
+      }
+      if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
+        showError(`התמונה גדולה מדי (מקסימום ${MAX_IMAGE_MB}MB)`);
+        return;
+      }
       try {
         uploadingPic.value = true;
-        Form.picURL = await uploadToBlob(file, "images");
+        picProgress.value = 0;
+        Form.picURL = await uploadToBlob(file, "images", picProgress);
+        window.$toast && window.$toast("התמונה עלתה בהצלחה ✅", "success");
       } catch (e) {
-        showError("העלאת התמונה נכשלה");
+        showError("העלאת התמונה נכשלה, נסה/י שוב");
       } finally {
         uploadingPic.value = false;
       }
@@ -575,12 +628,23 @@ export default {
 
     const handleVideoChange = async (event) => {
       const file = event.target.files && event.target.files[0];
+      event.target.value = "";
       if (!file) return;
+      if (!file.type.startsWith("video/")) {
+        showError("אפשר להעלות רק קובץ וידאו");
+        return;
+      }
+      if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
+        showError(`הסרטון גדול מדי (מקסימום ${MAX_VIDEO_MB}MB)`);
+        return;
+      }
       try {
         uploadingVideo.value = true;
-        Form.videoURL = await uploadToBlob(file, "videos");
+        videoProgress.value = 0;
+        Form.videoURL = await uploadToBlob(file, "videos", videoProgress);
+        window.$toast && window.$toast("הסרטון עלה בהצלחה ✅", "success");
       } catch (e) {
-        showError("העלאת הסרטון נכשלה");
+        showError("העלאת הסרטון נכשלה, נסה/י שוב");
       } finally {
         uploadingVideo.value = false;
       }
@@ -592,6 +656,8 @@ export default {
       LoadingB,
       uploadingPic,
       uploadingVideo,
+      picProgress,
+      videoProgress,
       requiredCount,
       filledCount,
       progressPercent,
@@ -1048,18 +1114,66 @@ $line: #e8ddc8;
   width: 100%;
 }
 
-.media-box__status {
-  margin: 0;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: $gold;
-  animation: pulse 1.2s ease infinite;
+// מצב העלאה של תמונה: טבעת מסתובבת + אחוזים
+.upload-circle--busy {
+  cursor: default;
+  position: relative;
+  border-style: solid;
+  border-color: $gold-soft;
+  background: rgba(201, 162, 39, 0.08);
+
+  &:hover {
+    transform: none;
+    background: rgba(201, 162, 39, 0.08);
+  }
 }
 
-@keyframes pulse {
-  50% {
-    opacity: 0.45;
+.upload-spinner {
+  position: absolute;
+  inset: -2px;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  border-top-color: $wine;
+  border-left-color: $gold;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
+}
+
+.upload-circle__percent {
+  font-family: "Frank Ruhl Libre", serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: $wine-deep;
+  line-height: 1;
+}
+
+// פס התקדמות להעלאת וידאו
+.upload-bar {
+  width: 100%;
+  max-width: 340px;
+  height: 7px;
+  border-radius: 999px;
+  background: $line;
+  overflow: hidden;
+}
+
+.upload-bar__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(to left, $gold, $wine);
+  transition: width 0.25s ease;
+}
+
+.video-btn--busy {
+  cursor: progress;
+  border-color: $gold;
+  background: rgba(201, 162, 39, 0.06);
+  color: $wine-deep;
 }
 
 .upload-circle {

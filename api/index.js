@@ -154,10 +154,58 @@ router.post("/upload", async (req, res) => {
   }
 });
 
+const REQUIRED_FORM_FIELDS = [
+  "Name",
+  "phone",
+  "IsuckOrMosadLimudim",
+  "BirthDate",
+  "Address",
+  "RamaDatit",
+  "Status",
+  "Ofi",
+  "Hobits",
+  "MaMehapes",
+  "KavimClalim",
+  "Gender",
+  "picURL",
+];
+const MAX_FIELD_LENGTH = 3000;
+
+function validateForm(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return "בקשה לא תקינה";
+  }
+  for (const f of REQUIRED_FORM_FIELDS) {
+    if (typeof body[f] !== "string" || body[f].trim() === "") {
+      return `שדה חובה חסר: ${f}`;
+    }
+  }
+  for (const [key, value] of Object.entries(body)) {
+    if (typeof value === "string" && value.length > MAX_FIELD_LENGTH) {
+      return `שדה ארוך מדי: ${key}`;
+    }
+  }
+  if (!/^\d{10}$/.test(body.phone.trim())) {
+    return "מספר טלפון חייב להכיל בדיוק 10 ספרות";
+  }
+  const birth = new Date(body.BirthDate);
+  if (isNaN(birth.getTime())) return "תאריך לידה לא תקין";
+  const age = (Date.now() - birth.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+  if (age < 16 || age > 120) return "תאריך לידה לא הגיוני";
+  if (!["זכר", "נקבה"].includes(body.Gender)) return "מגדר לא תקין";
+  for (const urlField of ["picURL", "videoURL"]) {
+    const v = body[urlField];
+    if (v && !/^https:\/\//.test(v)) return `קישור לא תקין: ${urlField}`;
+  }
+  return null;
+}
+
 router.post("/ADDForm", async (req, res) => {
   try {
     const body = req.body;
-    if (!body || typeof body !== "object" || Array.isArray(body)) {
+    const problem = validateForm(body);
+    if (problem) {
+      console.warn("ADDForm rejected:", problem);
       return res.status(400).json(false);
     }
     delete body._id;
@@ -357,7 +405,8 @@ router.put("/EditUser", requireAdmin, async (req, res) => {
     if (
       !validId(id) ||
       typeof field !== "string" ||
-      !ALLOWED_EDIT_FIELDS.has(field)
+      !ALLOWED_EDIT_FIELDS.has(field) ||
+      String(value ?? "").length > 3000
     ) {
       return res.status(400).json(false);
     }
