@@ -413,13 +413,26 @@ export default {
       console.log({ ...userObj });
     };
 
+    // המרת כל תמונה ל-PNG (הלוח של הדפדפן מקבל רק image/png)
+    const blobToPng = async (blob) => {
+      const bitmap = await createImageBitmap(blob);
+      const canvas = document.createElement("canvas");
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      canvas.getContext("2d").drawImage(bitmap, 0, 0);
+      return new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (png) => (png ? resolve(png) : reject(new Error("toBlob failed"))),
+          "image/png"
+        );
+      });
+    };
+
     const exportDetails = async () => {
       if (!user.value) return;
 
-      let imageUrl = user.value.picURL || "";
-      imageUrl = encodeURI(imageUrl);
       const content = `
-${imageUrl ? "🖼️ תמונה:\n" + imageUrl + "\n\n" : ""}🧑‍💼 *כרטיס מועמד*
+🧑‍💼 *כרטיס מועמד*
 
 👤 *שם:* ${user.value.Name || "—"}
 🎂 *גיל:* ${user.value.Age || "—"}
@@ -436,21 +449,78 @@ ${imageUrl ? "🖼️ תמונה:\n" + imageUrl + "\n\n" : ""}🧑‍💼 *כר�
 📌 נשלח דרך https://ravakim.vercel.app/
 `.trim();
 
+      // מנסים להביא את התמונה עצמה (ולא קישור)
+      let imageBlob = null;
+      if (user.value.picURL) {
+        try {
+          const res = await fetch(user.value.picURL);
+          if (res.ok) {
+            const b = await res.blob();
+            if (b.type.startsWith("image/")) imageBlob = b;
+          }
+        } catch (e) {
+          // אין גישה לתמונה (CORS/רשת) - ניפול לטקסט בלבד
+        }
+      }
+
+      // 1) שיתוף נייטיב עם קובץ - בטלפון נפתח ווצאפ עם התמונה והטקסט
+      if (imageBlob && navigator.canShare) {
+        const ext = (imageBlob.type.split("/")[1] || "jpg").split("+")[0];
+        const file = new File(
+          [imageBlob],
+          `${(user.value.Name || "candidate").replace(/\s+/g, "_")}.${ext}`,
+          { type: imageBlob.type }
+        );
+        if (navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({ files: [file], text: content });
+            return;
+          } catch (e) {
+            if (e && e.name === "AbortError") return; // המשתמש ביטל
+            // אחרת ממשיכים לנתיב ההעתקה
+          }
+        }
+      }
+
+      // 2) העתקה ללוח של התמונה האמיתית + הטקסט ביחד
+      if (imageBlob && navigator.clipboard && window.ClipboardItem) {
+        try {
+          const png = await blobToPng(imageBlob);
+          await navigator.clipboard.write([
+            new window.ClipboardItem({
+              "image/png": png,
+              "text/plain": new Blob([content], { type: "text/plain" }),
+            }),
+          ]);
+          window.$toast &&
+            window.$toast(
+              "✅ התמונה והפרטים הועתקו! הדבק בווצאפ (Ctrl+V), ואז הדבק שוב בשורת הכיתוב לטקסט",
+              "success"
+            );
+          return;
+        } catch (e) {
+          // ניפול להעתקת טקסט בלבד
+        }
+      }
+
+      // 3) גיבוי: טקסט בלבד (עם קישור לתמונה אם יש)
+      const fallbackContent = user.value.picURL
+        ? `🖼️ תמונה:\n${encodeURI(user.value.picURL)}\n\n${content}`
+        : content;
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(content);
-          window.$toast && window.$toast("✅ הפרטים הועתקו לווצאפ", "success");
+          await navigator.clipboard.writeText(fallbackContent);
         } else {
           const temp = document.createElement("textarea");
-          temp.value = content;
+          temp.value = fallbackContent;
           temp.style.position = "fixed";
           temp.style.opacity = "0";
           document.body.appendChild(temp);
           temp.select();
           document.execCommand("copy");
           document.body.removeChild(temp);
-          window.$toast && window.$toast("✅ הפרטים הועתקו לווצאפ", "success");
         }
+        window.$toast && window.$toast("✅ הפרטים הועתקו לווצאפ", "success");
       } catch (e) {
         window.$toast && window.$toast("❌ לא הצלחתי להעתיק לווצאפ", "error");
       }
